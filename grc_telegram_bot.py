@@ -3,7 +3,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from docx import Document
 from datetime import datetime
 
-TOKEN = "7740133597:AAFyxdxfZ-Dkm3jz1RXSS89z9aCEU8dSkTc"  # Tu API Key
+TOKEN = ""  # Tu API Key
 
 # Variables globales
 datos = {}
