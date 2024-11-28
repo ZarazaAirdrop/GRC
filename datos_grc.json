@@ -1,0 +1,63 @@
+{
+    "Datos Ingresados": {
+        "Precio LONG": 3062.98,
+        "Tokens LONG": 0.03,
+        "Precio SHORT": 3306.01,
+        "Tokens SHORT": 0.12,
+        "Precio Actual": 3356.74,
+        "Precio Recompra": 3409.18,
+        "Cantidad Tokens Recompra": 0.04,
+        "Capital Total (USD)": 103.0,
+        "Capital Riesgo (USD)": 6.5,
+        "Niveles de Stop Loss": 5,
+        "Niveles de Take Profit": 2,
+        "Porcentaje de Take Profit": 1.0
+    },
+    "Nuevo Precio Promedio": 3260.808571428571,
+    "Niveles de Stop Loss": [
+        {
+            "Nivel": 1,
+            "Precio": 3392.1340999999998,
+            "Tokens": 0.008,
+            "Resultado": 1.0506042285714283
+        },
+        {
+            "Nivel": 2,
+            "Precio": 3375.0881999999997,
+            "Tokens": 0.008,
+            "Resultado": 0.9142370285714279
+        },
+        {
+            "Nivel": 3,
+            "Precio": 3358.0423,
+            "Tokens": 0.008,
+            "Resultado": 0.7778698285714308
+        },
+        {
+            "Nivel": 4,
+            "Precio": 3340.9964,
+            "Tokens": 0.008,
+            "Resultado": 0.6415026285714303
+        },
+        {
+            "Nivel": 5,
+            "Precio": 3323.9505,
+            "Tokens": 0.008,
+            "Resultado": 0.5051354285714297
+        }
+    ],
+    "Niveles de Take Profit": [
+        {
+            "Nivel": 1,
+            "Precio": 3293.416657142857,
+            "Tokens": 0.02,
+            "Resultado": 0.6521617142857121
+        },
+        {
+            "Nivel": 2,
+            "Precio": 3326.0247428571424,
+            "Tokens": 0.02,
+            "Resultado": 1.3043234285714242
+        }
+    ]
+}
