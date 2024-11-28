@@ -2,6 +2,8 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from docx import Document
 from datetime import datetime
+import os
+TOKEN = os.getenv("TOKEN")
 
 TOKEN = ""  # Tu API Key
 
