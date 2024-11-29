@@ -5,8 +5,6 @@ from datetime import datetime
 import os
 TOKEN = os.getenv("TOKEN")
 
-TOKEN = ""  # Tu API Key
-
 # Variables globales
 datos = {}
 estado = {}
