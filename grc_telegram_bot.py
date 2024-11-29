@@ -83,50 +83,41 @@ async def procesar_datos(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Algo salió mal. Intenta de nuevo con /start.")
 
 async def calcular_resultados(update: Update, datos: dict):
-    tipo_recompra = datos["tipo_recompra"]
-    if tipo_recompra == "long":
-        nuevo_precio = (
-            (datos["tokens_long"] * datos["precio_long"] + datos["tokens_recompra"] * datos["precio_recompra"])
-            / (datos["tokens_long"] + datos["tokens_recompra"])
-        )
-    elif tipo_recompra == "short":
-        nuevo_precio = (
-            (datos["tokens_short"] * datos["precio_short"] + datos["tokens_recompra"] * datos["precio_recompra"])
-            / (datos["tokens_short"] + datos["tokens_recompra"])
-        )
-    else:
-        nuevo_precio = 0  # Manejo de errores en caso de tipo de operación inválido
+    try:
+        tipo_recompra = datos["tipo_recompra"]
+        if tipo_recompra == "long":
+            nuevo_precio = (
+                (datos["tokens_long"] * datos["precio_long"] + datos["tokens_recompra"] * datos["precio_recompra"])
+                / (datos["tokens_long"] + datos["tokens_recompra"])
+            )
+        elif tipo_recompra == "short":
+            nuevo_precio = (
+                (datos["tokens_short"] * datos["precio_short"] + datos["tokens_recompra"] * datos["precio_recompra"])
+                / (datos["tokens_short"] + datos["tokens_recompra"])
+            )
+        else:
+            nuevo_precio = 0  # Manejo de errores en caso de tipo de operación inválido
+        
+        print(f"Nuevo Precio Promedio calculado: {nuevo_precio}")
 
-    niveles_stop_loss = calcular_stop_loss(datos, nuevo_precio, tipo_recompra)
-    niveles_take_profit = calcular_take_profit(datos, nuevo_precio, tipo_recompra)
+        niveles_stop_loss = calcular_stop_loss(datos, nuevo_precio, tipo_recompra)
+        niveles_take_profit = calcular_take_profit(datos, nuevo_precio, tipo_recompra)
 
-    crear_documento(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit)
+        print("Niveles calculados correctamente.")
 
-    resultados = formatear_resultados(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit)
-    await update.message.reply_text(resultados, parse_mode="Markdown")
-    await update.message.reply_text("¡Cálculos realizados! Se generó un archivo Word con los resultados.")
-    await shutdown_bot()
+        crear_documento(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit)
 
-async def shutdown_bot():
-    """Cierra el bot después de ejecutar los cálculos."""
-    await asyncio.sleep(2)  # Esperar un momento antes de desconectar
-    os._exit(0)
+        print("Documento generado correctamente.")
 
-def calcular_stop_loss(datos, nuevo_precio, tipo_recompra):
-    # Función existente para calcular niveles de Stop Loss
-    pass
+        resultados = formatear_resultados(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit)
+        await update.message.reply_text(resultados, parse_mode="Markdown")
+        await update.message.reply_text("¡Cálculos realizados! Se generó un archivo Word con los resultados.")
+   
+    except Exception as e:
+        print(f"Error en calcular_resultados: {e}")
+        await update.message.reply_text("Ocurrió un error al procesar los resultados. Por favor, inténtalo de nuevo.")
 
-def calcular_take_profit(datos, nuevo_precio, tipo_recompra):
-    # Función existente para calcular niveles de Take Profit
-    pass
 
-def crear_documento(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit):
-    # Función existente para generar un documento
-    pass
-
-def formatear_resultados(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit):
-    # Función existente para formatear resultados
-    pass
 
 # Configuración del bot
 app = ApplicationBuilder().token(TOKEN).build()
