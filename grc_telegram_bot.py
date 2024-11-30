@@ -1,8 +1,8 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-from docx import Document
 from datetime import datetime
 import os
+import traceback
 
 # Obtener el token de la variable de entorno
 TOKEN = os.getenv("TOKEN")
@@ -82,7 +82,10 @@ async def procesar_datos(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("Algo salió mal. Intenta de nuevo con /start.")
     except ValueError as e:
-        await update.message.reply_text("Por favor, introduce un número válido.")
+        await update.message.reply_text(f"Error: {e}. Por favor, introduce un número válido.")
+    except Exception as e:
+        traceback.print_exc()
+        await update.message.reply_text("Ocurrió un error inesperado. Por favor, inténtalo de nuevo más tarde.")
 
 async def calcular_resultados(update: Update, datos: dict):
     try:
@@ -98,19 +101,17 @@ async def calcular_resultados(update: Update, datos: dict):
                 / (datos["tokens_short"] + datos["tokens_recompra"])
             )
         else:
-            nuevo_precio = 0
+            nuevo_precio = 0  # Manejo de errores en caso de tipo de operación inválido
 
         niveles_stop_loss = calcular_stop_loss(datos, nuevo_precio, tipo_recompra)
         niveles_take_profit = calcular_take_profit(datos, nuevo_precio, tipo_recompra)
 
-        crear_documento(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit)
-
         resultados = formatear_resultados(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit)
         await update.message.reply_text(resultados, parse_mode="Markdown")
-        await update.message.reply_text("¡Cálculos realizados! Se generó un archivo Word con los resultados.")
 
     except Exception as e:
-        await update.message.reply_text("Ocurrió un error al procesar los resultados. Por favor, inténtalo de nuevo.")
+        traceback.print_exc()
+        await update.message.reply_text(f"Ocurrió un error al procesar los resultados: {e}")
 
 def calcular_stop_loss(datos, nuevo_precio, tipo_recompra):
     niveles = datos["niveles_stop_loss"]
@@ -149,23 +150,6 @@ def calcular_take_profit(datos, nuevo_precio, tipo_recompra):
         }
         for i in range(niveles)
     ]
-
-def crear_documento(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit):
-    doc = Document()
-    doc.add_heading("Gestor de Riesgo Cripto (GRC)", level=1)
-    doc.add_heading("Datos Ingresados:", level=2)
-    for clave, valor in datos.items():
-        doc.add_paragraph(f"{clave.capitalize()}: {valor}")
-    doc.add_heading("Resultados Calculados:", level=2)
-    doc.add_paragraph(f"Nuevo Precio Promedio: {nuevo_precio:.6f}")
-    doc.add_heading("Niveles de Stop Loss:", level=2)
-    for nivel in niveles_stop_loss:
-        doc.add_paragraph(f"Nivel {nivel['Nivel']}: Precio {nivel['Precio']:.6f}, Tokens {nivel['Tokens']:.6f}")
-    doc.add_heading("Niveles de Take Profit:", level=2)
-    for nivel in niveles_take_profit:
-        doc.add_paragraph(f"Nivel {nivel['Nivel']}: Precio {nivel['Precio']:.6f}, Tokens {nivel['Tokens']:.6f}")
-    nombre_archivo = f"Resultados/GRC_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
-    doc.save(nombre_archivo)
 
 def formatear_resultados(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit):
     resultados = "**Datos Ingresados:**\n"
