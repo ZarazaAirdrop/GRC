@@ -3,11 +3,6 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from datetime import datetime
 import os
 import traceback
-import asyncio
-import logging
-
-# Configuración de logging
-logging.basicConfig(level=logging.INFO)
 
 # Obtener el token de la variable de entorno
 TOKEN = os.getenv("TOKEN")
@@ -106,43 +101,73 @@ async def calcular_resultados(update: Update, datos: dict):
                 / (datos["tokens_short"] + datos["tokens_recompra"])
             )
         else:
-            nuevo_precio = 0
+            nuevo_precio = 0  # Manejo de errores en caso de tipo de operación inválido
 
         niveles_stop_loss = calcular_stop_loss(datos, nuevo_precio, tipo_recompra)
         niveles_take_profit = calcular_take_profit(datos, nuevo_precio, tipo_recompra)
 
         resultados = formatear_resultados(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit)
         await update.message.reply_text(resultados, parse_mode="Markdown")
-        await update.message.reply_text("¿Quieres seguir utilizando el bot? Escribe /start para continuar. El bot se desconectará en 5 minutos si no recibe respuesta.")
-
-        # Temporizador de desconexión
-        await asyncio.sleep(300)
-        if estado.get(update.effective_user.id) is None:  # Verifica si el usuario no ha interactuado
-            print("El bot se desconectará.")
-            exit()
 
     except Exception as e:
         traceback.print_exc()
         await update.message.reply_text(f"Ocurrió un error al procesar los resultados: {e}")
 
 def calcular_stop_loss(datos, nuevo_precio, tipo_recompra):
-    # (igual que antes)
-    pass
+    niveles = datos["niveles_stop_loss"]
+    tokens_recompra = datos["tokens_recompra"]
+
+    porcentajes = [0.4, 0.3, 0.2, 0.1, 0.0][:niveles]
+    tokens_por_nivel = [tokens_recompra * p for p in porcentajes]
+
+    factor = -1 if tipo_recompra == "long" else 1
+    precio_base = datos["precio_recompra"] * (1 + 0.01 * factor)
+
+    return [
+        {
+            "Nivel": i + 1,
+            "Precio": round(precio_base + factor * (0.01 * i * precio_base), 6),
+            "Tokens": round(tokens_por_nivel[i], 6),
+        }
+        for i in range(niveles)
+    ]
 
 def calcular_take_profit(datos, nuevo_precio, tipo_recompra):
-    # (igual que antes)
-    pass
+    niveles = datos["niveles_take_profit"]
+    tokens_recompra = datos["tokens_recompra"]
+
+    porcentajes = [0.2, 0.3, 0.5][:niveles]
+    tokens_por_nivel = [tokens_recompra * p for p in porcentajes]
+
+    porcentaje_tp = datos["porcentaje_take_profit"] / 100
+    factor = 1 if tipo_recompra == "long" else -1
+
+    return [
+        {
+            "Nivel": i + 1,
+            "Precio": round(nuevo_precio + factor * (porcentaje_tp * (i + 1) * nuevo_precio), 6),
+            "Tokens": round(tokens_por_nivel[i], 6),
+        }
+        for i in range(niveles)
+    ]
 
 def formatear_resultados(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit):
-    # (igual que antes)
-    pass
+    resultados = "**Datos Ingresados:**\n"
+    for clave, valor in datos.items():
+        resultados += f"- {clave.capitalize()}: {valor}\n"
+    resultados += f"\n**Nuevo Precio Promedio:** {nuevo_precio:.6f}\n\n"
+    resultados += "**Niveles de Stop Loss:**\nNivel | Precio    | Tokens\n"
+    for nivel in niveles_stop_loss:
+        resultados += f"{nivel['Nivel']}     | {nivel['Precio']:.6f} | {nivel['Tokens']:.6f}\n"
+    resultados += "\n**Niveles de Take Profit:**\nNivel | Precio    | Tokens\n"
+    for nivel in niveles_take_profit:
+        resultados += f"{nivel['Nivel']}     | {nivel['Precio']:.6f} | {nivel['Tokens']:.6f}\n"
+    return resultados
 
 # Configuración del bot
-try:
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, procesar_datos))
-    print("Bot en ejecución...")
-    app.run_polling()
-except Exception as e:
-    print(f"Error: {e}")
+app = ApplicationBuilder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, procesar_datos))
+
+print("Bot en ejecución...")
+app.run_polling()
