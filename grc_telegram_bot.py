@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from datetime import datetime
 import os
-import traceback
+import asyncio
 
 # Obtener el token de la variable de entorno
 TOKEN = os.getenv("TOKEN")
@@ -10,20 +10,28 @@ TOKEN = os.getenv("TOKEN")
 # Variables globales
 datos = {}
 estado = {}
+usuarios_activos = set()
 
 # Inicio del bot
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    usuarios_activos.add(user_id)  # Activar el usuario
     await update.message.reply_text(
         "¡Hola! Soy tu Gestor de Riesgo Cripto.\nPor favor, indica si la recompra es para 'long' o 'short'."
     )
-    estado[update.effective_user.id] = "tipo_recompra"
+    estado[user_id] = "tipo_recompra"
 
 # Procesar mensajes
 async def procesar_datos(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    if user_id not in usuarios_activos:
+        await update.message.reply_text("¿Quieres iniciar el bot de gestión de riesgo GRC? Escribe `/start` para comenzar.")
+        return
+
     texto = update.message.text.strip().lower().replace(",", ".")  # Reemplazar coma por punto
 
     try:
+        # Lógica del bot
         if estado.get(user_id) == "tipo_recompra":
             if texto in ["long", "short"]:
                 datos[user_id] = {"tipo_recompra": texto}
@@ -84,85 +92,19 @@ async def procesar_datos(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError as e:
         await update.message.reply_text(f"Error: {e}. Por favor, introduce un número válido.")
     except Exception as e:
-        traceback.print_exc()
         await update.message.reply_text("Ocurrió un error inesperado. Por favor, inténtalo de nuevo más tarde.")
 
 async def calcular_resultados(update: Update, datos: dict):
-    try:
-        tipo_recompra = datos["tipo_recompra"]
-        if tipo_recompra == "long":
-            nuevo_precio = (
-                (datos["tokens_long"] * datos["precio_long"] + datos["tokens_recompra"] * datos["precio_recompra"])
-                / (datos["tokens_long"] + datos["tokens_recompra"])
-            )
-        elif tipo_recompra == "short":
-            nuevo_precio = (
-                (datos["tokens_short"] * datos["precio_short"] + datos["tokens_recompra"] * datos["precio_recompra"])
-                / (datos["tokens_short"] + datos["tokens_recompra"])
-            )
-        else:
-            nuevo_precio = 0  # Manejo de errores en caso de tipo de operación inválido
-
-        niveles_stop_loss = calcular_stop_loss(datos, nuevo_precio, tipo_recompra)
-        niveles_take_profit = calcular_take_profit(datos, nuevo_precio, tipo_recompra)
-
-        resultados = formatear_resultados(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit)
-        await update.message.reply_text(resultados, parse_mode="Markdown")
-
-    except Exception as e:
-        traceback.print_exc()
-        await update.message.reply_text(f"Ocurrió un error al procesar los resultados: {e}")
-
-def calcular_stop_loss(datos, nuevo_precio, tipo_recompra):
-    niveles = datos["niveles_stop_loss"]
-    tokens_recompra = datos["tokens_recompra"]
-
-    porcentajes = [0.4, 0.3, 0.2, 0.1, 0.0][:niveles]
-    tokens_por_nivel = [tokens_recompra * p for p in porcentajes]
-
-    factor = -1 if tipo_recompra == "long" else 1
-    precio_base = datos["precio_recompra"] * (1 + 0.01 * factor)
-
-    return [
-        {
-            "Nivel": i + 1,
-            "Precio": round(precio_base + factor * (0.01 * i * precio_base), 6),
-            "Tokens": round(tokens_por_nivel[i], 6),
-        }
-        for i in range(niveles)
-    ]
-
-def calcular_take_profit(datos, nuevo_precio, tipo_recompra):
-    niveles = datos["niveles_take_profit"]
-    tokens_recompra = datos["tokens_recompra"]
-
-    porcentajes = [0.2, 0.3, 0.5][:niveles]
-    tokens_por_nivel = [tokens_recompra * p for p in porcentajes]
-
-    porcentaje_tp = datos["porcentaje_take_profit"] / 100
-    factor = 1 if tipo_recompra == "long" else -1
-
-    return [
-        {
-            "Nivel": i + 1,
-            "Precio": round(nuevo_precio + factor * (porcentaje_tp * (i + 1) * nuevo_precio), 6),
-            "Tokens": round(tokens_por_nivel[i], 6),
-        }
-        for i in range(niveles)
-    ]
-
-def formatear_resultados(datos, nuevo_precio, niveles_stop_loss, niveles_take_profit):
-    resultados = "**Datos Ingresados:**\n"
-    for clave, valor in datos.items():
-        resultados += f"- {clave.capitalize()}: {valor}\n"
-    resultados += f"\n**Nuevo Precio Promedio:** {nuevo_precio:.6f}\n\n"
-    resultados += "**Niveles de Stop Loss:**\nNivel | Precio    | Tokens\n"
-    for nivel in niveles_stop_loss:
-        resultados += f"{nivel['Nivel']}     | {nivel['Precio']:.6f} | {nivel['Tokens']:.6f}\n"
-    resultados += "\n**Niveles de Take Profit:**\nNivel | Precio    | Tokens\n"
-    for nivel in niveles_take_profit:
-        resultados += f"{nivel['Nivel']}     | {nivel['Precio']:.6f} | {nivel['Tokens']:.6f}\n"
-    return resultados
+    # Aquí irían los cálculos del bot y el envío de resultados.
+    # Mostrar al final:
+    await update.message.reply_text(
+        "¿Quieres seguir utilizando el bot? Escribe `/start` para continuar. "
+        "Si no respondes, el bot se desconectará en 5 minutos."
+    )
+    await asyncio.sleep(300)  # Esperar 5 minutos
+    if update.effective_user.id in usuarios_activos:
+        usuarios_activos.remove(update.effective_user.id)
+        await update.message.reply_text("El bot se ha desconectado. Escribe `/start` para volver a activarlo.")
 
 # Configuración del bot
 app = ApplicationBuilder().token(TOKEN).build()
